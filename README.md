@@ -65,7 +65,10 @@ Pipeline:
    retargets cross-document anchors to `target="_blank"` (the iframe lacks
    `allow-top-navigation`, so an inline navigation to a frame-blocking site
    like github.com would otherwise blank the preview). Fragment links and
-   user-set targets pass through untouched.
+   user-set targets pass through untouched. The iframe sandbox carries
+   `allow-popups-to-escape-sandbox` so popups opened by that retarget are
+   normal unsandboxed tabs (without it, the popup inherits a null origin
+   and any in-page script — including github.com's own — breaks).
 5. The payload is wiped from local storage when the viewer tab closes; the
    24h TTL is a backstop for orphaned entries (browser crash, bookmarked
    viewer URL, etc.). Bookmarking a viewer tab within the TTL window works;
