@@ -21,7 +21,7 @@ A GitHub comment is recognized iff:
 
 ````markdown
 <details>
-<summary>📄 <code>gh-html-render:v1</code> — Interactive HTML version (save as <code>plan.html</code> and open in a browser, or install the gh-html-render extension to render in place)</summary>
+<summary>📄 <code>gh-html-render:v1</code> — Interactive HTML version (save as <code>plan.html</code> and open in a browser, or install <a href="https://github.com/zanettialvaro/gh-html-render">gh-html-render</a> to render in place)</summary>
 
 ```html
 <!doctype html>
