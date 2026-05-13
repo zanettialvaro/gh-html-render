@@ -1,0 +1,27 @@
+{
+  "manifest_version": 3,
+  "name": "GitHub HTML Render",
+  "version": "0.1.0",
+  "description": "Renders HTML embedded inside GitHub issue/PR comments in an isolated extension-origin tab.",
+  "permissions": ["tabs", "storage"],
+  "host_permissions": ["https://github.com/*"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://github.com/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["viewer.html"],
+      "matches": ["https://github.com/*"]
+    }
+  ],
+  "sandbox": {
+    "pages": ["sandbox.html"]
+  }
+}

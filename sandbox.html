@@ -1,0 +1,30 @@
+<!doctype html>
+<html>
+<head><meta charset="utf-8"></head>
+<body>
+<script>
+  // Sandboxed extension page (declared in manifest.sandbox.pages). MV3 gives
+  // sandboxed pages an opaque origin (no chrome.* APIs, no same-origin access
+  // to the parent viewer) AND a relaxed default CSP that permits inline
+  // scripts — required to execute user-provided HTML.
+  //
+  // Protocol:
+  //   1. On load, postMessage {type:"ready"} to parent.
+  //   2. Wait for {type:"render", html} from parent.
+  //   3. Replace the document with the payload via document.write so its
+  //      <script> tags execute. innerHTML would not execute scripts.
+  //
+  // document.write here is the deliberate behavior, not a foot-gun: the
+  // payload is rendered in an opaque-origin sandbox with no privilege to
+  // reach github.com, chrome.* APIs, or the parent viewer.
+  addEventListener("message", (e) => {
+    if (e.source !== parent) return;
+    if (e.data?.type !== "render" || typeof e.data.html !== "string") return;
+    document.open();
+    document.write(e.data.html);
+    document.close();
+  }, { once: true });
+  parent.postMessage({ type: "ready" }, "*");
+</script>
+</body>
+</html>
