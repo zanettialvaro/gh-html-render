@@ -72,13 +72,6 @@ Pipeline:
 4. Visit a GitHub comment that follows the standard. A button appears in the
    summary line.
 
-## Legacy fallback (off by default)
-
-`ALLOW_LEGACY_FALLBACK` in `content.js` is `false`. The extension only
-recognizes comments that carry the `gh-html-render:v1` token. Flip the flag
-to `true` temporarily if you need to render a pre-standard comment without
-editing it.
-
 ## Posting side: `skills/gh-html-comment/`
 
 A Claude Code skill that emits comments in the canonical shape lives at
