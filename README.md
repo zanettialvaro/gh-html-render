@@ -69,10 +69,10 @@ Pipeline:
    `allow-popups-to-escape-sandbox` so popups opened by that retarget are
    normal unsandboxed tabs (without it, the popup inherits a null origin
    and any in-page script — including github.com's own — breaks).
-5. The payload is wiped from local storage when the viewer tab closes; the
-   24h TTL is a backstop for orphaned entries (browser crash, bookmarked
-   viewer URL, etc.). Bookmarking a viewer tab within the TTL window works;
-   after expiry the viewer shows "Payload expired".
+5. The payload lives for its 24h TTL regardless of tab state — close the
+   viewer tab and reopen the same URL within 24h, it still resolves. After
+   expiry the viewer shows "Payload expired". A best-effort sweep on each
+   new write removes any already-expired entries, so storage stays bounded.
 
 ## Install (unpacked)
 

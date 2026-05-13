@@ -6,9 +6,11 @@
 //
 // Storage choice: chrome.storage.local with a 24h TTL on each entry. local
 // (not session) so a bookmarked viewer URL still resolves after a browser
-// restart within the TTL window. The tab-close handler still wipes the
-// payload eagerly; the TTL is a backstop for orphaned entries (browser
-// crashes, bookmarked-then-closed tabs, etc.).
+// restart within the TTL window. We deliberately do NOT eagerly delete on
+// tab close — that fought the 24h contract (close-then-reopen-within-24h
+// must work) and was unsafe when the same payload was open in multiple
+// tabs (first close would wipe it for everyone). The sweep on each new
+// write keeps storage bounded by the TTL.
 
 const PAYLOAD_TTL_MS = 24 * 60 * 60 * 1000;
 
@@ -57,21 +59,12 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   return true;
 });
 
-chrome.tabs.onRemoved.addListener(async (tabId) => {
-  // The tab→payload mapping lives in session storage (cheap, doesn't need to
-  // survive restarts — if the tab is closing in this session, we know it).
-  const { [`tab:${tabId}`]: payloadId } = await chrome.storage.session.get(
-    `tab:${tabId}`
-  );
-  if (payloadId) {
-    await chrome.storage.local.remove(`payload:${payloadId}`);
-    await chrome.storage.session.remove(`tab:${tabId}`);
-  }
-});
-
-chrome.runtime.onMessage.addListener((msg, sender) => {
-  if (msg?.type !== "viewer-bound") return;
-  if (sender.tab?.id && msg.id) {
-    chrome.storage.session.set({ [`tab:${sender.tab.id}`]: msg.id });
-  }
+// No tab-close handler — payloads live for their TTL regardless of tab
+// state. The previous design wiped on tab close, which broke the "I left
+// the rendered preview open as a tab/bookmark" workflow and also raced
+// when the same payload was open in multiple tabs. The `viewer-bound`
+// message is still accepted (no-op) for backwards compatibility with
+// already-loaded viewer pages from older builds.
+chrome.runtime.onMessage.addListener((msg) => {
+  if (msg?.type === "viewer-bound") return; // accepted, ignored
 });
