@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Untitled — gh-html-render document</title>
+<style>
+  /* ============================================================
+     gh-html-render canonical base. Drop your content into <body>;
+     leave the design tokens, pill variants, and heading-anchor
+     behavior as the shared language across renderable comments.
+     ============================================================ */
+
+  :root {
+    /* GitHub-aligned dark palette so the rendered preview reads like
+       GitHub's own dark UI — reviewers don't context-switch. */
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface-2: #21262d;
+    --border: #30363d;
+    --fg: #e6edf3;
+    --muted: #8b949e;
+    --code: #c9d1d9;
+
+    /* Status colors. Mirror them in pill variants below. */
+    --accent: #58a6ff;   /* info / links */
+    --good:   #3fb950;   /* committed / shipped */
+    --warn:   #d29922;   /* proposal / pending */
+    --bad:    #f85149;   /* incident / regression */
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    color: var(--fg);
+    background: radial-gradient(ellipse at top, #161b22 0%, #0d1117 60%);
+    min-height: 100vh;
+  }
+  main { max-width: 1100px; margin: 0 auto; padding: 3rem 1.5rem 6rem; }
+
+  /* Hero / header */
+  header.hero {
+    display: flex; align-items: baseline; justify-content: space-between;
+    gap: 1.5rem; flex-wrap: wrap;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 1.25rem; margin-bottom: 2.5rem;
+  }
+  header.hero h1 { font-size: 1.8rem; margin: 0; font-weight: 600; letter-spacing: -0.01em; }
+  header.hero h1 code { font-size: 0.9em; color: var(--accent); background: none; padding: 0; }
+  .meta { color: var(--muted); font-size: 0.85rem; display: flex; gap: 1rem; align-items: center; }
+  .meta a { color: var(--accent); text-decoration: none; }
+  .meta a:hover { text-decoration: underline; }
+
+  /* Typography */
+  h2 { font-size: 1.25rem; font-weight: 600; margin: 2.5rem 0 1rem; letter-spacing: -0.005em; }
+  h3 { font-size: 1rem; font-weight: 600; margin: 1.25rem 0 0.5rem; }
+  p { margin: 0.6rem 0; }
+  ul, ol { padding-left: 1.4rem; }
+  li { margin: 0.3rem 0; }
+
+  /* Heading anchor (auto-injected for every heading with an id). The "§"
+     used to be a CSS ::before pseudo — now it's a real <a> so clicking it
+     scrolls + copies the deep link to the section. */
+  .heading-anchor {
+    color: var(--muted);
+    text-decoration: none;
+    margin-right: 0.5rem;
+    font-weight: 400;
+    opacity: 0.6;
+    transition: color 0.15s, opacity 0.15s;
+  }
+  .heading-anchor:hover { color: var(--accent); opacity: 1; }
+  :target { scroll-margin-top: 1rem; }
+
+  /* Inline code */
+  p code, li code, td code, .pill code {
+    font: 0.85em "SF Mono", Menlo, Consolas, monospace;
+    background: var(--surface); color: var(--code);
+    padding: 0.1em 0.35em; border-radius: 4px; border: 1px solid var(--border);
+  }
+
+  /* ============================================================
+     PILL — author-chosen label with a fixed color taxonomy.
+     Recommended labels (apply via class):
+       .pill.warn → "Plan", "Proposal"        (pending / pre-merge)
+       .pill.good → "Decision", "Demo"        (committed / shipped)
+       .pill.bad  → "Postmortem"              (incident / regression)
+       .pill.note → "Investigation", "Status" (informational)
+       .pill      → fallback neutral
+     ============================================================ */
+  .pill {
+    display: inline-block; padding: 0.15em 0.6em; border-radius: 999px;
+    background: var(--surface-2); border: 1px solid var(--border);
+    font-size: 0.75rem; color: var(--muted); letter-spacing: 0.02em;
+  }
+  .pill.good { color: var(--good); border-color: rgba(63,185,80,0.4); }
+  .pill.bad  { color: var(--bad);  border-color: rgba(248,81,73,0.4); }
+  .pill.warn { color: var(--warn); border-color: rgba(210,153,34,0.4); }
+  .pill.note { color: var(--accent); border-color: rgba(88,166,255,0.4); }
+
+  /* Banner / callout */
+  .banner {
+    background: linear-gradient(135deg, rgba(248,81,73,0.08), rgba(248,81,73,0.02));
+    border: 1px solid rgba(248,81,73,0.25);
+    border-radius: 8px; padding: 1rem 1.25rem; margin: 1rem 0;
+    font-size: 0.92rem;
+  }
+  .banner strong { color: var(--bad); }
+  .banner.info    { background: linear-gradient(135deg, rgba(88,166,255,0.08), rgba(88,166,255,0.02));  border-color: rgba(88,166,255,0.25); }
+  .banner.info strong    { color: var(--accent); }
+  .banner.good    { background: linear-gradient(135deg, rgba(63,185,80,0.08),  rgba(63,185,80,0.02));   border-color: rgba(63,185,80,0.25);  }
+  .banner.good strong    { color: var(--good); }
+  .banner.warn    { background: linear-gradient(135deg, rgba(210,153,34,0.08), rgba(210,153,34,0.02));  border-color: rgba(210,153,34,0.25); }
+  .banner.warn strong    { color: var(--warn); }
+</style>
+<script>
+  // Heading auto-link. For every <h1..h4 id="..."> in the rendered document,
+  // prepend a "§" anchor that points to its own id. Cheap deep-linkability
+  // without each author having to write the anchor manually.
+  document.addEventListener("DOMContentLoaded", function () {
+    document.querySelectorAll("h1[id], h2[id], h3[id], h4[id]").forEach(function (h) {
+      if (h.querySelector(".heading-anchor")) return; // already done
+      const a = document.createElement("a");
+      a.href = "#" + h.id;
+      a.className = "heading-anchor";
+      a.textContent = "§";
+      a.setAttribute("aria-label", "Link to this section");
+      h.prepend(a);
+    });
+  });
+</script>
+</head>
+<body>
+<main>
+
+  <header class="hero">
+    <h1>Your title here</h1>
+    <div class="meta">
+      <!-- Pick exactly one pill class: warn / good / bad / note (or no
+           modifier for neutral). Pill label is whatever your doc is.
+           See SKILL.md for the recommended taxonomy. -->
+      <span class="pill warn">Plan</span>
+      <a href="https://github.com/OWNER/REPO/issues/N">#N</a>
+      <span>·</span>
+      <span>your-scope-or-tag</span>
+    </div>
+  </header>
+
+  <h2 id="problem">The problem</h2>
+  <p>One paragraph framing the thing you're addressing.</p>
+
+  <div class="banner info">
+    <strong>Context:</strong> use a banner when a single fact needs to land
+    before anything else.
+  </div>
+
+  <h2 id="approach">Approach</h2>
+  <p>What you're proposing. Be specific.</p>
+
+  <h2 id="verification">Verification</h2>
+  <p>How a reviewer or future-you confirms this is doing what it claims.</p>
+
+</main>
+</body>
+</html>

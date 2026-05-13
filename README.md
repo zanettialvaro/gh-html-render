@@ -60,7 +60,12 @@ Pipeline:
 4. The viewer hands the payload to a manifest-declared sandboxed page
    (`sandbox.html`) via `postMessage`. The sandboxed page runs in an opaque
    origin with a relaxed CSP that permits inline scripts but blocks
-   `chrome.*` APIs and same-origin access to the parent viewer.
+   `chrome.*` APIs and same-origin access to the parent viewer. Before
+   rendering, the sandbox injects a capture-phase click handler that
+   retargets cross-document anchors to `target="_blank"` (the iframe lacks
+   `allow-top-navigation`, so an inline navigation to a frame-blocking site
+   like github.com would otherwise blank the preview). Fragment links and
+   user-set targets pass through untouched.
 5. The payload is wiped from local storage when the viewer tab closes; the
    24h TTL is a backstop for orphaned entries (browser crash, bookmarked
    viewer URL, etc.). Bookmarking a viewer tab within the TTL window works;
@@ -73,6 +78,20 @@ Pipeline:
 3. "Load unpacked" → pick this directory.
 4. Visit a GitHub comment that follows the standard. A button appears in the
    summary line.
+
+## Authoring template: `templates/base.html`
+
+A canonical starting point for new gh-html-render documents. Ships:
+
+- GitHub-aligned dark design tokens (matches the viewer chrome).
+- A fixed pill taxonomy: `warn` (Plan/Proposal), `good` (Decision/Demo),
+  `bad` (Postmortem), `note` (Investigation/Status), default neutral.
+- A heading auto-linker — every `<h1..h4 id="...">` gets a clickable `§`
+  prefix that links to its own id, so reviewers can deep-link sections.
+- Banner / callout variants in the same four-color taxonomy.
+
+The companion skill reads this file when it produces HTML for posting, so
+generated comments stay visually consistent.
 
 ## Posting side: `skills/gh-html-comment/`
 

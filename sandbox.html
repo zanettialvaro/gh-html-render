@@ -11,17 +11,45 @@
   // Protocol:
   //   1. On load, postMessage {type:"ready"} to parent.
   //   2. Wait for {type:"render", html} from parent.
-  //   3. Replace the document with the payload via document.write so its
+  //   3. Inject a small <script> into the payload's <head> that retargets
+  //      cross-document anchors to "_blank". Without it, clicking a link
+  //      like the issue backlink hits the iframe's own context — the
+  //      sandbox lacks allow-top-navigation, so the browser tries to load
+  //      the URL inside the iframe instead, and sites like github.com
+  //      refuse to be framed (X-Frame-Options: deny). The preview goes
+  //      blank.
+  //   4. Replace the document with the payload via document.write so its
   //      <script> tags execute. innerHTML would not execute scripts.
   //
   // document.write here is the deliberate behavior, not a foot-gun: the
   // payload is rendered in an opaque-origin sandbox with no privilege to
   // reach github.com, chrome.* APIs, or the parent viewer.
+
+  // Capture-phase delegated click handler. Runs before user-defined click
+  // handlers, so user code can still preventDefault to handle clicks itself.
+  // In-page fragment links (href starts with "#") and user-set targets are
+  // left alone.
+  const interceptor =
+    '<script>' +
+    'addEventListener("click", function(e){' +
+    '  var a = e.target && e.target.closest && e.target.closest("a[href]");' +
+    '  if (!a) return;' +
+    '  var href = a.getAttribute("href");' +
+    '  if (!href || href.charAt(0) === "#") return;' +
+    '  if (!a.target) a.target = "_blank";' +
+    '}, true);' +
+    '<' + '/script>';
+
+  function injectInterceptor(html) {
+    const re = /<head([^>]*)>/i;
+    return re.test(html) ? html.replace(re, (m) => m + interceptor) : interceptor + html;
+  }
+
   addEventListener("message", (e) => {
     if (e.source !== parent) return;
     if (e.data?.type !== "render" || typeof e.data.html !== "string") return;
     document.open();
-    document.write(e.data.html);
+    document.write(injectInterceptor(e.data.html));
     document.close();
   }, { once: true });
   parent.postMessage({ type: "ready" }, "*");

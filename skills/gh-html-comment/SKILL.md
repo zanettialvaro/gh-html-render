@@ -76,10 +76,32 @@ gh api -X PATCH repos/<owner>/<repo>/issues/comments/<id> --input /tmp/comment-p
 
 Note: editing or posting to a production-repo comment may hit Claude Code's auto-mode confirmation. If so, surface the diff to the user and let them re-confirm — don't try to bypass.
 
+## Authoring conventions
+
+Use the base template at [`templates/base.html`](../../templates/base.html) as the starting point when producing HTML. It ships canonical design tokens (GitHub-aligned dark palette), a fixed pill taxonomy, a heading auto-linker (every `<h1..h4 id="...">` gets a clickable `§` deep-link), and reusable banner/callout styles. Reading that file with the `Read` tool when invoked keeps every comment visually consistent with the existing artifacts in the wild.
+
+### Pill taxonomy
+
+The header pill labels the *kind* of doc. Pick one — colors are fixed, labels are picked from this table:
+
+| Pill class      | Label examples              | When                          |
+| --------------- | --------------------------- | ----------------------------- |
+| `pill warn`     | Plan, Proposal              | pre-implementation, pending   |
+| `pill good`     | Decision, Demo              | committed, shipped            |
+| `pill bad`      | Postmortem                  | incident, regression          |
+| `pill note`     | Investigation, Status       | informational, in-progress    |
+| `pill` (no mod) | (neutral fallback)          | doesn't fit the above         |
+
+Don't invent new pill classes — the four variants are it. Pick the closest fit and label with a short noun.
+
+### Linking back to the source
+
+Comments commonly reference the originating issue/PR. Put those as plain links in the header `.meta` block — the sandboxed iframe doesn't have `allow-top-navigation`, so the extension auto-rewrites cross-document anchors to `target="_blank"`. You don't need to set `target` manually. Fragment links (`href="#approach"`) are left alone and scroll in-document.
+
 ## Flow when invoked
 
 1. **Identify the target.** Parse `<owner>/<repo>#<n>` from the argument; if missing, ask. Distinguish new comment vs. editing an existing one (the user usually says "post" vs. "edit"; an existing comment id appears as `?` in the URL anchor `#issuecomment-<id>`).
-2. **Get or produce the HTML.** Either accept a file path / pasted document, or produce one from a description. If producing, keep the structure focused: clear title, one-paragraph problem statement, one or two interactive visuals (toggles, click-to-expand sections), well-organized supporting detail. Lean into interactivity — that's what justifies the rich format over plain markdown.
+2. **Get or produce the HTML.** Either accept a file path / pasted document, or produce one from a description. If producing, `Read` [`templates/base.html`](../../templates/base.html) and build on it — same tokens, same pill taxonomy, same heading-anchor behavior. Keep the structure focused: clear title, one-paragraph problem statement, one or two interactive visuals (toggles, click-to-expand sections), well-organized supporting detail. Lean into interactivity — that's what justifies the rich format over plain markdown.
 3. **Pre-flight.** Run all five checks. If any fails, fix and re-check rather than posting a broken comment.
 4. **Assemble the body.** Write the full markdown (canonical shape + payload) to a temp file like `/tmp/comment-body.md`. The summary line may vary in suffix wording, but the `<code>gh-html-render:v1</code>` token must be present.
 5. **Post (or edit).** Use the `gh api` command with stdin/`--input` from step above. Capture the response.
