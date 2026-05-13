@@ -53,16 +53,18 @@ access to `github.com` cookies or DOM.
 Pipeline:
 1. Content script reads the fenced HTML text from the rendered comment.
 2. Sends it to the background service worker, which stores it in
-   `chrome.storage.session` keyed by a random 128-bit id.
+   `chrome.storage.local` keyed by a random 128-bit id with a 24h TTL.
 3. Opens `viewer.html?id=<id>` in a new tab. The viewer is an extension page
    (`chrome-extension://<id>/viewer.html`) — different origin from
    `github.com`.
-4. The viewer renders the payload inside an
-   `<iframe sandbox="allow-scripts allow-popups allow-forms allow-modals">`
-   with no `allow-same-origin`. The iframe gets a null opaque origin: scripts
-   run, but cannot read the parent (extension page), cannot read
-   `chrome-extension://` storage, and cannot reach `github.com`.
-5. The payload is wiped from session storage when the viewer tab closes.
+4. The viewer hands the payload to a manifest-declared sandboxed page
+   (`sandbox.html`) via `postMessage`. The sandboxed page runs in an opaque
+   origin with a relaxed CSP that permits inline scripts but blocks
+   `chrome.*` APIs and same-origin access to the parent viewer.
+5. The payload is wiped from local storage when the viewer tab closes; the
+   24h TTL is a backstop for orphaned entries (browser crash, bookmarked
+   viewer URL, etc.). Bookmarking a viewer tab within the TTL window works;
+   after expiry the viewer shows "Payload expired".
 
 ## Install (unpacked)
 

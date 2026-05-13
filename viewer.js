@@ -15,14 +15,23 @@
   try { await chrome.runtime.sendMessage({ type: "viewer-bound", id }); } catch {}
 
   const key = `payload:${id}`;
-  const result = await chrome.storage.session.get(key);
-  const html = result[key];
-  if (typeof html !== "string") {
+  const result = await chrome.storage.local.get(key);
+  const entry = result[key];
+  if (!entry || typeof entry.html !== "string") {
     frame.hidden = true;
     err.hidden = false;
-    err.textContent = "Payload not found (it may have already been consumed).";
+    err.textContent = "Payload not found (it may have already been consumed or expired).";
     return;
   }
+  if (typeof entry.expiresAt === "number" && entry.expiresAt <= Date.now()) {
+    // Backstop in case the background sweep hasn't run yet.
+    await chrome.storage.local.remove(key);
+    frame.hidden = true;
+    err.hidden = false;
+    err.textContent = "Payload expired (24h TTL).";
+    return;
+  }
+  const html = entry.html;
   size.textContent = `${(new Blob([html]).size / 1024).toFixed(1)} KB`;
 
   // Deliver the payload to the sandboxed renderer via postMessage. We can't
